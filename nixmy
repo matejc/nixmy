@@ -1,9 +1,9 @@
 #!/bin/sh
 
 # !!!MODIFY NEXT 3 LINES BEFORE RUNNING ANY COMMANDS!!!
-export NIX_MY_PKGS='/home/matej/workarea/nixpkgs'  # where the local repo is/will be after nixmy-init
-export NIX_USER_PROFILE_DIR='/nix/var/nix/profiles/per-user/matej'  # change your user name
-export NIX_MY_GITHUB='git://github.com/matejc/nixpkgs.git'  # your nixpkgs git repository
+export NIX_MY_PKGS='/home/lojze/newhacks/nnixmy/pkgs/pkgs/nixpkgs'  # where the local repo is/will be after nixmy-init
+export NIX_USER_PROFILE_DIR='/nix/var/nix/profiles/per-user/lojze'  # change your user name
+export NIX_MY_GITHUB='https://github.com/predkambrij/nixpkgs.git'  # your nixpkgs git repository
 
 
 # after running nixmy-init you will have nixpkgs directory in current working directory
