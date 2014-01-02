@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # !!!MODIFY NEXT 3 LINES BEFORE RUNNING ANY COMMANDS!!!
-export NIX_MY_PKGS='/home/lojze/newhacks/nnixmy/pkgs/pkgs/nixpkgs'  # where the local repo is/will be after nixmy-init
+export NIX_MY_PKGS='/home/lojze/newhacks/nnixmy/pkgs/nixpkgs'  # where the local repo will be after nixmy-init (note, put /nixpkgs at the end - it will be created by git clone)
 export NIX_USER_PROFILE_DIR='/nix/var/nix/profiles/per-user/lojze'  # change your user name
 export NIX_MY_GITHUB='https://github.com/predkambrij/nixpkgs.git'  # your nixpkgs git repository
 
@@ -89,6 +89,7 @@ nixmy-update() {
 
 nixmy-init() {
     {
+        cd "${NIX_MY_PKGS%/*}" # go one directory back to root of destination (/nixpkgs will be created by git clone)
         git clone $NIX_MY_GITHUB nixpkgs &&
         cd nixpkgs &&
         git remote add upstream git://github.com/NixOS/nixpkgs.git &&
