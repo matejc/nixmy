@@ -1,9 +1,9 @@
 #!/bin/sh
 
 # !!!MODIFY NEXT 3 LINES BEFORE RUNNING ANY COMMANDS!!!
-export NIX_MY_PKGS='/home/matej/workarea/nixpkgs'  # where the local repo is/will be after nixmy-init
-export NIX_USER_PROFILE_DIR='/nix/var/nix/profiles/per-user/matej'  # change your user name
-export NIX_MY_GITHUB='git://github.com/matejc/nixpkgs.git'  # your nixpkgs git repository
+export NIX_MY_PKGS='/home/lojze/newhacks/nnixmy/pkgs/nixpkgs'  # where the local repo will be after nixmy-init (note, put /nixpkgs at the end - it will be created by git clone)
+export NIX_USER_PROFILE_DIR='/nix/var/nix/profiles/per-user/lojze'  # change your user name
+export NIX_MY_GITHUB='https://github.com/predkambrij/nixpkgs.git'  # your nixpkgs git repository
 
 
 # after running nixmy-init you will have nixpkgs directory in current working directory
@@ -89,13 +89,16 @@ nixmy-update() {
 
 nixmy-init() {
     {
+        cd $(dirname $NIX_MY_PKGS) # go one directory back to root of destination (/nixpkgs will be created by git clone)
         git clone $NIX_MY_GITHUB nixpkgs &&
         cd nixpkgs &&
         git remote add upstream git://github.com/NixOS/nixpkgs.git &&
         git pull --rebase upstream master &&
-        git branch "local" &&
+        local rev=`nixmy-revision` &&
+        echo "creating local branch of unstable channel '$rev'" &&
+        git branch "local" $rev &&
         git checkout "local" &&
-        echo "INIT and UPDATE done, enjoy!"
+        echo "INIT done! You can update with nixmy-update and rebuild with nixmy-rebuild eg: nixmy-rebuild build"
     } || {
         echo "ERROR with init!"
         return 1
