@@ -1,9 +1,11 @@
 #!/bin/sh
 
-# !!!MODIFY NEXT 3 LINES BEFORE RUNNING ANY COMMANDS!!!
+# !!!MODIFY NEXT LINES BEFORE RUNNING ANY COMMANDS!!!
 export NIX_MY_PKGS='/home/matej/workarea/nixpkgs'  # where the local repo will be after nixmy-init (note, put /nixpkgs at the end - it will be created by git clone)
 export NIX_USER_PROFILE_DIR='/nix/var/nix/profiles/per-user/matej'  # change your user name
 export NIX_MY_GITHUB='git://github.com/matejc/nixpkgs.git'  # your nixpkgs git repository
+export NIX_MY_LOGDIR='/path/for/nixmy_logs'  # don't put "/" at the end
+export NIX_MY_CUR_CHAN_REV='cur_channel_rev'  # name of the file where current channel revision will be saved (used for logging in nixmy-rebuild)
 
 
 # after running nixmy-init you will have nixpkgs directory in current working directory
@@ -53,7 +55,16 @@ nixmy-profile() {
     nix-env -f "$NIX_MY_PKGS" -p $NIX_USER_PROFILE_DIR/"$1" -i "$1" ;
 }
 
-nixmy-rebuild() { `_asroot` nixos-rebuild -I $NIX_MY_PKGS "$@" ; }
+nixmy-rebuild() {
+    `_asroot` nixos-rebuild -I $NIX_MY_PKGS "$@";
+    if [ $? -eq 0 ]; then
+        cur_dir=$(pwd)
+        cur_channel_rev_loc="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/$NIX_MY_CUR_CHAN_REV"
+        cd $cur_dir # go back where we started
+        cur_channel_rev=$(cat $cur_channel_rev_loc)
+        echo "$(date) rebuild with channel rev:"$"$cur_channel_rev" >> $NIX_MY_LOGDIR"/nixmy-rebuild.log"
+    fi
+}
 
 # Print latest Hydra's revision
 nixmy-revision() {
@@ -73,7 +84,16 @@ nixmy-update() {
             git checkout "local" &&
             local rev=`nixmy-revision` &&
             echo "rebasing 'local' to '$rev'" &&
+
             git rebase $rev &&
+            if [ $? -eq 0 ]; then
+                # save last channel revision which will be used in track nixmy-rebuild
+                cur_dir=$(pwd)
+                cur_channel_rev_loc="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/$NIX_MY_CUR_CHAN_REV"
+                cd $cur_dir # go back where we started
+                echo $rev > $cur_channel_rev_loc 
+                echo "$(date) local rebased to $rev" >> $NIX_MY_LOGDIR"/nixmy-update.log"
+            fi
             echo "UPDATE done, enjoy!"
         } || {
             echo "ERROR with update!"
