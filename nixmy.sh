@@ -57,7 +57,7 @@ nixmy-rebuild() { `_asroot` nixos-rebuild -I nixpkgs=$NIX_MY_PKGS "$@" ; }
 
 # Print latest Hydra's revision
 nixmy-revision() {
-  local rev=`wget -q  -S --output-document - http://nixos.org/channels/nixos-unstable/ 2>&1 | grep Location | awk -F '/' '{print $6}' | awk -F '.' '{print $3}'`
+  local rev=`wget -q  -S --output-document - http://nixos.org/channels/nixos-unstable/ 2>&1 | grep Location | awk -F '/' '{print $7}' | awk -F '.' '{print $3}'`
   printf "%s" $rev
 }
 nixmy-revision-14() {
