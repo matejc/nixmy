@@ -5,35 +5,9 @@ export NIX_MY_PKGS='/home/matej/workarea/nixpkgs'  # where the local repo will b
 export NIX_USER_PROFILE_DIR='/nix/var/nix/profiles/per-user/matej'  # change your user name
 export NIX_MY_GITHUB='git://github.com/matejc/nixpkgs.git'  # your nixpkgs git repository
 
-
-# after running nixmy-init you will have nixpkgs directory in current working directory
-#
-# BRANCHES:
-#   local - where you will do your work and modifications
-#           this is also where you want to be where nixmy-rebuild is called
-#   master - this is where master branch of git://github.com/NixOS/nixpkgs.git is
-#
-# REMOTES:
-#   origin - $NIX_MY_GITHUB
-#   upstream - official repository git://github.com/NixOS/nixpkgs.git
-
-# before running nixmy-update make sure that you commit or stash changes
-# running nixmy-update will rebase from NixOS/nixpkgs to master and then checkout local branch back
-
-# every now and then you can update your $NIX_MY_GITHUB repository by pushing to it:
-# ex:
-#    git checkout master
-#    git push origin master
-# do not forget to checkout local branch after as this is your work branch
-
+# DO NOT MODIFY BELOW
 
 export NIX_PATH="nixpkgs=$NIX_MY_PKGS:nixos=$NIX_MY_PKGS/nixos:nixos-config=/etc/nixos/configuration.nix:services=/etc/nixos/services"
-
-# alias nixmy-profile="nix-env -f '$NIX_MY_PKGS' -p $NIX_USER_PROFILE_DIR/"
-alias nixmy-py27="nix-env -f '$NIX_MY_PKGS' -p $NIX_USER_PROFILE_DIR/py27 -i py27"
-
-alias nixmy-robotenv="nix-env -f '$NIX_MY_PKGS' -p $NIX_USER_PROFILE_DIR/robotenv -i robotenv"
-alias nixmy-makeenv="nix-env -f '$NIX_MY_PKGS' -p $NIX_USER_PROFILE_DIR/makeenv -i makeenv"
 
 alias nixmy-cd="cd '$NIX_MY_PKGS'"
 
@@ -53,6 +27,10 @@ nixmy-profile() {
     nix-env -f "$NIX_MY_PKGS" -p $NIX_USER_PROFILE_DIR/"$1" -i "$1" ;
 }
 
+nixmy-log() {
+    git -C $NIX_MY_PKGS log --graph --decorate --pretty=oneline --abbrev-commit --branches --remotes --tags ;
+}
+
 nixmy-rebuild() { `_asroot` nixos-rebuild -I nixpkgs=$NIX_MY_PKGS "$@" ; }
 
 # Print latest Hydra's revision
@@ -61,7 +39,7 @@ nixmy-revision() {
   printf "%s" $rev
 }
 nixmy-revision-14() {
-  local rev=`wget -q  -S --output-document - http://nixos.org/channels/nixos-14.04/ 2>&1 | grep Location | awk -F '/' '{print $6}' | awk -F '.' '{print $4}'`
+  local rev=`wget -q  -S --output-document - http://nixos.org/channels/nixos-14.12/ 2>&1 | grep Location | awk -F '/' '{print $7}' | awk -F '.' '{print $4}'`
   printf "%s" $rev
 }
 
