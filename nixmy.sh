@@ -86,3 +86,5 @@ nixmy-init() {
         return 1
     }
 }
+
+echo "Usage of nixmy.sh is deprecated, use nixmy/default.nix instead!"
