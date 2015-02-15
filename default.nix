@@ -33,7 +33,7 @@ let
   # this is a command and not a function, to work with nox
   nixenv = pkgs.writeScriptBin "nix-env" ''
     #!${pkgs.stdenv.shell}
-    ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" $@
+    ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" "$@"
   '';
 
   nixmyEnv = pkgs.buildEnv {
@@ -113,7 +113,7 @@ let
         }
     }
 
-    $@
+    "$@"
   '';
 
 in
