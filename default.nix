@@ -50,7 +50,7 @@ let
     export PATH="${nixmyEnv}/bin:$PATH"
 
     profile() {
-        ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -p ${NIX_USER_PROFILE_DIR}/"$1" -i "$1" ;
+        ${nix}/bin/nix-env $2 -f "${NIX_MY_PKGS}" -p ${NIX_USER_PROFILE_DIR}/"$1" -i "$1";
     }
 
     log() {
