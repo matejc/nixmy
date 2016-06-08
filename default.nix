@@ -60,8 +60,12 @@ let
     rebuild() { nixos-rebuild -I 'nixpkgs=${NIX_MY_PKGS}' "$@" ; }
 
     # Print latest Hydra's revision
-    revision() {
+    revision-old() {
       local rev=`wget -q  -S --output-document - http://nixos.org/channels/nixos-unstable/ 2>&1 | grep Location | awk -F '/' '{print $7}' | awk -F '.' '{print $3}'`
+      printf "%s" $rev
+    }
+    revision() {
+      local rev=`wget -q --output-document - http://nixos.org/channels/nixos-unstable/git-revision`
       printf "%s" $rev
     }
     revision-14() {
