@@ -59,17 +59,8 @@ let
 
     rebuild() { nixos-rebuild -I 'nixpkgs=${NIX_MY_PKGS}' "$@" ; }
 
-    # Print latest Hydra's revision
-    revision-old() {
-      local rev=`wget -q  -S --output-document - http://nixos.org/channels/nixos-unstable/ 2>&1 | grep Location | awk -F '/' '{print $7}' | awk -F '.' '{print $3}'`
-      printf "%s" $rev
-    }
     revision() {
       local rev=`wget -q --output-document - http://nixos.org/channels/nixos-unstable/git-revision`
-      printf "%s" $rev
-    }
-    revision-14() {
-      local rev=`wget -q  -S --output-document - http://nixos.org/channels/nixos-14.12/ 2>&1 | grep Location | awk -F '/' '{print $7}' | awk -F '.' '{print $4}'`
       printf "%s" $rev
     }
 
@@ -115,6 +106,45 @@ let
             echo "ERROR with init!"
             return 1
         }
+    }
+
+    path() {
+      nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
+    }
+
+    find() {
+      ${pkgs.findutils}/bin/find /nix/store -iname "$@"
+    }
+
+    locate() {
+      ${pkgs.findutils}/bin/locate -i "$@"
+    }
+
+    query() {
+      nix-env -qaP --description | grep -i $@
+    }
+
+    build() {
+      nix-build '<nixpkgs>' -A $1
+    }
+
+    command() {
+      fullname="`which $1`"
+      whichExitStatus="$?"
+      if [ "$whichExitStatus" -eq "0" ]; then
+        readlink -f "$fullname"
+      else
+        echo "$1 not found"
+        exit 1
+      fi
+    }
+
+    help() {
+      if [ -z "$1" ]; then
+        declare -F | ${pkgs.gawk}/bin/awk '{print "nixmy help "$3}'
+      else
+        declare -f $1
+      fi
     }
 
     "$@"
