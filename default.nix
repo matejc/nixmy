@@ -124,8 +124,16 @@ let
       nix-env -qaP --description | grep -i $@
     }
 
+    install() {
+      nix-env -iA $@
+    }
+
     build() {
       nix-build '<nixpkgs>' -A $1
+    }
+
+    just-build() {
+      nix-build '<nixpkgs>' --no-out-link -A $1
     }
 
     command() {
