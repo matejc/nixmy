@@ -17,12 +17,11 @@ let
   NIX_USER_PROFILE_DIR = config.nixmy.NIX_USER_PROFILE_DIR;
   NIX_MY_GITHUB = config.nixmy.NIX_MY_GITHUB;
 
+  NIX_MY_BACKUP = config.nixmy.NIX_MY_BACKUP;
+
   # optional
   NIXOS_CONFIG = config.nixmy.NIXOS_CONFIG or "/etc/nixos/configuration.nix";
   NIXOS_SERVICES = config.nixmy.NIXOS_SERVICES or "/etc/nixos/services";
-
-  # if you want to use nox for your custom nixpkgs
-  useNox = config.nixmy.useNox or true;
 
   # to add other programs to nixmy
   extraPaths = config.nixmy.extraPaths or [];
@@ -31,16 +30,14 @@ let
   NIX_PATH = "nixpkgs=${NIX_MY_PKGS}:nixos=${NIX_MY_PKGS}/nixos:nixos-config=${NIXOS_CONFIG}:services=${NIXOS_SERVICES}";
 
   # this is a command and not a function, to work with nox
-  nixenv = pkgs.writeScriptBin "nix-env" ''
+  nixenv = pkgs.writeScriptBin "nixenv" ''
     #!${pkgs.stdenv.shell}
     ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" "$@"
   '';
 
   nixmyEnv = pkgs.buildEnv {
     name = "nixmyEnv";
-    paths = [ nixenv pkgs.wget pkgs.git ]
-      ++ (lib.optionals useNox [ pkgs.nox ])
-      ++ extraPaths;
+    paths = [ pkgs.wget pkgs.git nixenv nix ] ++ extraPaths;
   };
 
   nixmy = pkgs.writeScriptBin "nixmy" ''
@@ -60,7 +57,7 @@ let
     rebuild() { nixos-rebuild -I 'nixpkgs=${NIX_MY_PKGS}' "$@" ; }
 
     revision() {
-      local rev=`wget -q --output-document - http://nixos.org/channels/nixos-unstable/git-revision`
+      local rev=`${pkgs.curl}/bin/curl -sL https://nixos.org/channels/nixos-unstable | grep -Po "(?<=nixpkgs-channels/commits/)[^']*"`
       printf "%s" $rev
     }
 
@@ -109,7 +106,7 @@ let
     }
 
     path() {
-      nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
+      ${nix}/bin/nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
     }
 
     find() {
@@ -121,19 +118,32 @@ let
     }
 
     query() {
-      nix-env -qaP --description | grep -i $@
+      ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -qaP --description | grep -i $@
+    }
+
+    installed() {
+      ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -q $@
     }
 
     install() {
-      nix-env -iA $@
+      ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -iA $@
+    }
+
+    erase() {
+      if [ -z "$1" ]; then
+        echo "argument is required"
+        exit 1
+      else
+        ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -e $@
+      fi
     }
 
     build() {
-      nix-build '<nixpkgs>' -A $1
+      ${nix}/bin/nix-build '<nixpkgs>' -A $1
     }
 
     just-build() {
-      nix-build '<nixpkgs>' --no-out-link -A $1
+      ${nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
     }
 
     command() {
@@ -145,6 +155,27 @@ let
         echo "$1 not found"
         exit 1
       fi
+    }
+
+    backup() {
+      mkdir -p $HOME/.nixmy
+      backupDir="$HOME/.nixmy/backup"
+      if [ -d "$backupDir" ]
+      then
+        rm -rf "$backupDir"
+      fi
+      if [ -z "${NIX_MY_BACKUP}" ]
+      then
+        echo "NIX_MY_BACKUP is empty" >&2
+        exit 1
+      fi
+      ${pkgs.git}/bin/git clone "${NIX_MY_BACKUP}" "$backupDir"
+      backupNix="$HOME/.nixmy/backup/$(cat /etc/hostname).nix"
+      cp -v "${NIXOS_CONFIG}" "$backupNix"
+      ${pkgs.git}/bin/git -C "$backupDir" add "$backupNix"
+      ${pkgs.git}/bin/git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
+      ${pkgs.git}/bin/git -C "$backupDir" push origin master
+      rm -rf "$backupDir"
     }
 
     help() {
