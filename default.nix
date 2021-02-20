@@ -1,32 +1,36 @@
 /*
   Minimal example (/etc/nixos/configuration.nix):
 
+  environment.systemPackages = [
+    (pkgs.callPackage /home/matejc/workarea/nixmy { inherit config; })
+  ];
   nixpkgs.config.nixmy = {
-    NIX_MY_PKGS = "/home/matej/workarea/nixpkgs";
-    NIX_USER_PROFILE_DIR = "/nix/var/nix/profiles/per-user/matej";
-    NIX_MY_GITHUB = "git://github.com/matejc/nixpkgs.git";
+    NIX_MY_PKGS = "/home/matejc/workarea/nixpkgs";
+    NIX_USER_PROFILE_DIR = "/nix/var/nix/profiles/per-user/matejc";
+    NIX_MY_GITHUB = "git://github.com/matejc/nixpkgs";
+    NIX_MY_BACKUP = "git@github.com:matejc/configuration_nix_backups"
   };
 */
 
-{ pkgs ? import <nixpkgs> {}
-, lib ? pkgs.lib
-, config ? pkgs.config }:
+{ pkgs, lib, config, ... }:
 let
-  # required, see above for example
-  NIX_MY_PKGS = config.nixmy.NIX_MY_PKGS;
-  NIX_USER_PROFILE_DIR = config.nixmy.NIX_USER_PROFILE_DIR;
-  NIX_MY_GITHUB = config.nixmy.NIX_MY_GITHUB;
+  nixmyConfig = config.nixpkgs.config.nixmy;
 
-  NIX_MY_BACKUP = config.nixmy.NIX_MY_BACKUP;
+  # required, see above for example
+  NIX_MY_PKGS = nixmyConfig.NIX_MY_PKGS;
+  NIX_USER_PROFILE_DIR = nixmyConfig.NIX_USER_PROFILE_DIR;
+  NIX_MY_GITHUB = nixmyConfig.NIX_MY_GITHUB;
+
+  NIX_MY_BACKUP = nixmyConfig.NIX_MY_BACKUP;
 
   # optional
-  NIXOS_CONFIG = config.nixmy.NIXOS_CONFIG or "/etc/nixos/configuration.nix";
-  NIXOS_SERVICES = config.nixmy.NIXOS_SERVICES or "/etc/nixos/services";
+  NIXOS_CONFIG = nixmyConfig.NIXOS_CONFIG or "/etc/nixos/configuration.nix";
+  NIXOS_SERVICES = nixmyConfig.NIXOS_SERVICES or "/etc/nixos/services";
 
   # to add other programs to nixmy
-  extraPaths = config.nixmy.extraPaths or [];
+  extraPaths = nixmyConfig.extraPaths or [];
 
-  nix = config.nixmy.nix or config.nix.package.out or pkgs.nix.out;
+  nix = nixmyConfig.nix or config.nix.package.out;
   NIX_PATH = "nixpkgs=${NIX_MY_PKGS}:nixos=${NIX_MY_PKGS}/nixos:nixos-config=${NIXOS_CONFIG}:services=${NIXOS_SERVICES}";
 
   # this is a command and not a function, to work with nox
