@@ -61,7 +61,7 @@ let
     rebuild() { nixos-rebuild -I 'nixpkgs=${NIX_MY_PKGS}' "$@" ; }
 
     revision() {
-      local rev=`${pkgs.curl}/bin/curl -sL https://nixos.org/channels/nixos-unstable | grep -Po "(?<=nixpkgs-channels/commits/)[^']*"`
+      local rev=`${pkgs.curl}/bin/curl -sL https://nixos.org/channels/nixos-unstable | grep -Po "(?<=/commits/)[^']*"`
       printf "%s" $rev
     }
 
