@@ -60,6 +60,8 @@ let
 
     rebuild() { nixos-rebuild -I 'nixpkgs=${NIX_MY_PKGS}' "$@" ; }
 
+    rebuild-flake() { nixos-rebuild "$1" --flake "$2" ''${@:3} ; }
+
     revision() {
       local rev=`${pkgs.curl}/bin/curl -sL https://nixos.org/channels/nixos-unstable | grep -Po "(?<=/commits/)[^']*"`
       printf "%s" $rev
@@ -174,9 +176,10 @@ let
         exit 1
       fi
       ${pkgs.git}/bin/git clone "${NIX_MY_BACKUP}" "$backupDir"
-      backupNix="$HOME/.nixmy/backup/$(cat /etc/hostname).nix"
-      cp -v "${NIXOS_CONFIG}" "$backupNix"
-      ${pkgs.git}/bin/git -C "$backupDir" add "$backupNix"
+      backupNixDir="$HOME/.nixmy/backup/$(cat /etc/hostname)/"
+      mkdir -p $backupNixDir
+      cp -rv "$(dirname ${NIXOS_CONFIG})/"* "$backupNixDir"
+      ${pkgs.git}/bin/git -C "$backupDir" add "$backupNixDir"
       ${pkgs.git}/bin/git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
       ${pkgs.git}/bin/git -C "$backupDir" push origin master
       rm -rf "$backupDir"
