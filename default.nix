@@ -163,6 +163,10 @@ let
       fi
     }
 
+    nix() {
+      ${nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
+    }
+
     backup() {
       mkdir -p $HOME/.nixmy
       backupDir="$HOME/.nixmy/backup"
