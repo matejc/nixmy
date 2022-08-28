@@ -98,7 +98,7 @@ let
             cd $(dirname ${NIX_MY_PKGS}) # go one directory back to root of destination (/nixpkgs will be created by git clone)
             git clone ${NIX_MY_GITHUB} nixpkgs &&
             cd nixpkgs &&
-            git remote add upstream git://github.com/NixOS/nixpkgs.git &&
+            git remote add upstream https://github.com/NixOS/nixpkgs.git &&
             git pull --rebase upstream master &&
             local rev=`revision` &&
             echo "creating local branch of unstable channel '$rev'" &&
