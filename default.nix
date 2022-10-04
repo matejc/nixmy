@@ -71,7 +71,7 @@ let
         cd ${NIX_MY_PKGS}
 
         local diffoutput="`git --no-pager diff`"
-        if [ -z $diffoutput ]; then
+        if [ -z "$diffoutput" ]; then
             {
                 echo "git diff is empty, preceding ..." &&
                 git checkout master &&
