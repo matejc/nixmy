@@ -73,7 +73,7 @@ let
         local diffoutput="`git --no-pager diff`"
         if [ -z "$diffoutput" ]; then
             {
-                echo "git diff is empty, preceding ..." &&
+                echo "git diff is empty, proceeding ..." &&
                 git checkout master &&
                 git pull --rebase upstream master &&
                 git checkout "local" &&
