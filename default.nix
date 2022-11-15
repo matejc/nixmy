@@ -30,7 +30,7 @@ let
   # to add other programs to nixmy
   extraPaths = nixmyConfig.extraPaths or [];
 
-  nix = nixmyConfig.nix or config.nix.package.out;
+  nix = nixmyConfig.nix or config.nix.package.out or pkgs.nix.out;
   NIX_PATH = "nixpkgs=${NIX_MY_PKGS}:nixos=${NIX_MY_PKGS}/nixos:nixos-config=${NIXOS_CONFIG}:services=${NIXOS_SERVICES}";
 
   # this is a command and not a function, to work with nox
