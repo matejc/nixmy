@@ -164,7 +164,7 @@ let
     }
 
     run() {
-      ${nix}/bin/nix-shell -p $1 --run ''${@:2}
+      ${nix}/bin/nix-shell -p $1 --run "''${@:2}"
     }
 
     nix_() {
