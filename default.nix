@@ -163,7 +163,11 @@ let
       fi
     }
 
-    nix() {
+    run() {
+      ${nix}/bin/nix-shell -p $1 --run ''${@:2}
+    }
+
+    nix_() {
       ${nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
     }
 
