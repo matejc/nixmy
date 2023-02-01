@@ -198,7 +198,7 @@ let
       list="''${@:2}"
       if [[ "$list" == "all" ]]
       then
-        list=$(${nix}/bin/nix-instantiate --eval -E "let a = import $flake/flake.nix; in builtins.concatStringsSep ''' ''' (builtins.attrNames a.inputs)")
+        list="$(${nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
       fi
       for item in $list
       do
