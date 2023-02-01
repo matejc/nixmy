@@ -193,6 +193,19 @@ let
       rm -rf "$backupDir"
     }
 
+    flake-update() {
+      flake="$1"
+      list="''${@:2}"
+      if [[ "$list" == "all" ]]
+      then
+        list=$(${nix}/bin/nix-instantiate --eval -E "let a = import $flake/flake.nix; in builtins.concatStringsSep '' '' (builtins.attrNames a.inputs)")
+      fi
+      for item in $list
+      do
+        ${nix}/bin/nix flake lock --update-input $item "$flake"
+      done
+    }
+
     help() {
       if [ -z "$1" ]; then
         declare -F | ${pkgs.gawk}/bin/awk '{print "nixmy help "$3}'
