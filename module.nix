@@ -41,7 +41,7 @@ in {
   };
 
   config = {
-    environmnet.systemPackages = [ (pkgs.callPackage { nixmyConfig = cfg; }) ];
+    environment.systemPackages = [ (pkgs.callPackage { nixmyConfig = cfg; }) ];
   };
 }
 
