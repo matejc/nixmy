@@ -3,7 +3,7 @@ with lib;
 let
   cfg = config.programs.nixmy;
 in {
-  options = {
+  options.programs.nixmy = {
     enable = mkEnableOption "Enable nixmy";
 
     nixpkgs = mkOption {
