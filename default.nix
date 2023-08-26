@@ -1,47 +1,18 @@
-/*
-  Minimal example (/etc/nixos/configuration.nix):
-
-  environment.systemPackages = [
-    (pkgs.callPackage /home/matejc/workarea/nixmy { inherit config; })
-  ];
-  nixpkgs.config.nixmy = {
-    NIX_MY_PKGS = "/home/matejc/workarea/nixpkgs";
-    NIX_USER_PROFILE_DIR = "/nix/var/nix/profiles/per-user/matejc";
-    NIX_MY_GITHUB = "git://github.com/matejc/nixpkgs";
-    NIX_MY_BACKUP = "git@github.com:matejc/configuration_nix_backups"
-  };
-*/
-
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, nixmyConfig, ... }:
 let
-  nixmyConfig = config.nixpkgs.config.nixmy;
+  cfg = nixmyConfig;
 
-  # required, see above for example
-  NIX_MY_PKGS = nixmyConfig.NIX_MY_PKGS;
-  NIX_USER_PROFILE_DIR = nixmyConfig.NIX_USER_PROFILE_DIR;
-  NIX_MY_GITHUB = nixmyConfig.NIX_MY_GITHUB;
-
-  NIX_MY_BACKUP = nixmyConfig.NIX_MY_BACKUP;
-
-  # optional
-  NIXOS_CONFIG = nixmyConfig.NIXOS_CONFIG or "/etc/nixos/configuration.nix";
-  NIXOS_SERVICES = nixmyConfig.NIXOS_SERVICES or "/etc/nixos/services";
-
-  # to add other programs to nixmy
-  extraPaths = nixmyConfig.extraPaths or [];
-
-  nix = nixmyConfig.nix or config.nix.package.out or pkgs.nix.out;
-  NIX_PATH = "nixpkgs=${NIX_MY_PKGS}:nixos=${NIX_MY_PKGS}/nixos:nixos-config=${NIXOS_CONFIG}:services=${NIXOS_SERVICES}";
+  NIX_PATH = "nixpkgs=${cfg.nixpkgs}:nixos=${cfg.nixpkgs}/nixos:nixos-config=${cfg.nixosConfig}";
 
   # this is a command and not a function, to work with nox
   nixenv = pkgs.writeScriptBin "nixenv" ''
     #!${pkgs.stdenv.shell}
-    ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" "$@"
+    ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" "$@"
   '';
 
   nixmyEnv = pkgs.buildEnv {
     name = "nixmyEnv";
-    paths = [ pkgs.wget pkgs.git nixenv nix ] ++ extraPaths;
+    paths = [ pkgs.wget pkgs.git nixenv cfg.nix ] ++ cfg.extraPaths;
   };
 
   nixmy = pkgs.writeScriptBin "nixmy" ''
@@ -51,14 +22,14 @@ let
     export PATH="${nixmyEnv}/bin:$PATH"
 
     profile() {
-        ${nix}/bin/nix-env $2 -f "${NIX_MY_PKGS}" -p ${NIX_USER_PROFILE_DIR}/"$1" -i "$1";
+        ${cfg.nix}/bin/nix-env $2 -f "${cfg.nixpkgs}" -p /nix/var/nix/profiles/per-user/"$USER"/"$1" -i "$1";
     }
 
     log() {
-        git -C ${NIX_MY_PKGS} log --graph --decorate --pretty=oneline --abbrev-commit --branches --remotes --tags ;
+        git -C ${cfg.nixpkgs} log --graph --decorate --pretty=oneline --abbrev-commit --branches --remotes --tags ;
     }
 
-    rebuild() { nixos-rebuild -I 'nixpkgs=${NIX_MY_PKGS}' "$@" ; }
+    rebuild() { nixos-rebuild -I 'nixpkgs=${cfg.nixpkgs}' "$@" ; }
 
     rebuild-flake() { nixos-rebuild "$1" --flake "$2" ''${@:3} ; }
 
@@ -68,7 +39,7 @@ let
     }
 
     update() {
-        cd ${NIX_MY_PKGS}
+        cd ${cfg.nixpkgs}
 
         local diffoutput="`git --no-pager diff`"
         if [ -z "$diffoutput" ]; then
@@ -95,8 +66,8 @@ let
 
     init() {
         {
-            cd $(dirname ${NIX_MY_PKGS}) # go one directory back to root of destination (/nixpkgs will be created by git clone)
-            git clone ${NIX_MY_GITHUB} nixpkgs &&
+            cd $(dirname ${cfg.nixpkgs}) # go one directory back to root of destination (/nixpkgs will be created by git clone)
+            git clone ${cfg.nixpkgs} nixpkgs &&
             cd nixpkgs &&
             git remote add upstream https://github.com/NixOS/nixpkgs.git &&
             git pull --rebase upstream master &&
@@ -112,7 +83,7 @@ let
     }
 
     path() {
-      ${nix}/bin/nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
+      ${cfg.nix}/bin/nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
     }
 
     find() {
@@ -124,15 +95,15 @@ let
     }
 
     query() {
-      ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -qaP --description | grep -i $@
+      ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -qaP --description | grep -i $@
     }
 
     installed() {
-      ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -q $@
+      ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -q $@
     }
 
     install() {
-      ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -iA $@
+      ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -iA $@
     }
 
     erase() {
@@ -140,16 +111,16 @@ let
         echo "argument is required"
         exit 1
       else
-        ${nix}/bin/nix-env -f "${NIX_MY_PKGS}" -e $@
+        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -e $@
       fi
     }
 
     build() {
-      ${nix}/bin/nix-build '<nixpkgs>' -A $1
+      ${cfg.nix}/bin/nix-build '<nixpkgs>' -A $1
     }
 
     just-build() {
-      ${nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
+      ${cfg.nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
     }
 
     command() {
@@ -164,11 +135,11 @@ let
     }
 
     run() {
-      ${nix}/bin/nix-shell -p $1 --run "''${@:2}"
+      ${cfg.nix}/bin/nix-shell -p $1 --run "''${@:2}"
     }
 
     nix_() {
-      ${nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
+      ${cfg.nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
     }
 
     backup() {
@@ -178,15 +149,15 @@ let
       then
         rm -rf "$backupDir"
       fi
-      if [ -z "${NIX_MY_BACKUP}" ]
+      if [ -z "${cfg.backup}" ]
       then
-        echo "NIX_MY_BACKUP is empty" >&2
+        echo "backup is not set" >&2
         exit 1
       fi
-      ${pkgs.git}/bin/git clone "${NIX_MY_BACKUP}" "$backupDir"
+      ${pkgs.git}/bin/git clone "${cfg.backup}" "$backupDir"
       backupNixDir="$HOME/.nixmy/backup/$(cat /etc/hostname)/"
       mkdir -p $backupNixDir
-      cp -rv "$(dirname ${NIXOS_CONFIG})/"* "$backupNixDir"
+      cp -rv "$(dirname ${cfg.nixosConfig})/"* "$backupNixDir"
       ${pkgs.git}/bin/git -C "$backupDir" add "$backupNixDir"
       ${pkgs.git}/bin/git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
       ${pkgs.git}/bin/git -C "$backupDir" push origin master
@@ -198,11 +169,11 @@ let
       list="''${@:2}"
       if [[ "$list" == "all" ]]
       then
-        list="$(${nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
+        list="$(${cfg.nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
       fi
       for item in $list
       do
-        ${nix}/bin/nix flake lock --update-input $item "$flake"
+        ${cfg.nix}/bin/nix flake lock --update-input $item "$flake"
       done
     }
 
@@ -216,6 +187,5 @@ let
 
     "$@"
   '';
-
 in
   nixmy
