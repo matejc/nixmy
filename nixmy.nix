@@ -1,22 +1,18 @@
-{ pkgs, nixmyConfig }:
+{ pkgs, nixmyConfig, branchPrefix ? "mylocal" }:
 let
   cfg = nixmyConfig;
 
   NIX_PATH = "nixpkgs=${cfg.nixpkgs}:nixos=${cfg.nixpkgs}/nixos:nixos-config=${cfg.nixosConfig}";
 
-  # this is a command and not a function, to work with nox
-  nixenv = pkgs.writeScriptBin "nixenv" ''
-    #!${pkgs.stdenv.shell}
-    ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" "$@"
-  '';
-
   nixmyEnv = pkgs.buildEnv {
     name = "nixmyEnv";
-    paths = [ pkgs.wget pkgs.git nixenv cfg.nix ] ++ cfg.extraPaths;
+    paths = [ pkgs.wget pkgs.git pkgs.gawk pkgs.coreutils pkgs.gnugrep cfg.nix ] ++ cfg.extraPaths;
   };
 
   nixmy = pkgs.writeScriptBin "nixmy" ''
     #!${pkgs.stdenv.shell}
+
+    set -e
 
     export NIX_PATH="${NIX_PATH}"
     export PATH="${nixmyEnv}/bin:$PATH"
@@ -61,7 +57,45 @@ let
             echo "STAGE IS NOT CLEAN! CLEAR IT BEFORE UPDATE!"
             return 1
         fi
+    }
 
+    upgrade() {
+        cd ${cfg.nixpkgs}
+
+        if ! update
+        then
+            echo "Update failed!" >&2
+            return 1
+        fi
+
+        local diffoutput="$(git --no-pager diff)"
+        if [ -z "$diffoutput" ]
+        then
+          echo "Fetching origin ..."
+          git fetch origin
+          local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
+          if [ -z "$branchNum" ]
+          then
+            echo "No branches found with pattern: /${branchPrefix}[0-9]+/!" >&2
+            return 1
+          fi
+          local branch="${branchPrefix}$branchNum"
+          git checkout "$branch"
+          local commits=$(git rev-list --left-only --count local...$branch)
+          if [[ "$commits" == "0" ]]
+          then
+            echo "There are no new commits in local branch, no need to update!" >&2
+            return 0
+          fi
+          local newBranch="${branchPrefix}$(( branchNum + 1 ))"
+          git checkout -b "$newBranch"
+          echo "Rebase local -> $newBranch ..."
+          git rebase local
+        else
+            git status
+            echo "STAGE IS NOT CLEAN! CLEAR IT BEFORE UPDATE!" >&2
+            return 1
+        fi
     }
 
     init() {
