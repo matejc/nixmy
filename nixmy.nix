@@ -169,7 +169,7 @@ let
     }
 
     run() {
-      ${cfg.nix}/bin/nix-shell -p $1 --run "''${@:2}"
+      ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "''${@:2}"
     }
 
     nix_() {
