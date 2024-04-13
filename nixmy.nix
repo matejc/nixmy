@@ -99,6 +99,8 @@ let
     }
 
     push() {
+        cd ${cfg.nixpkgs}
+
         local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
         if [ -z "$branchNum" ]
         then
@@ -107,7 +109,8 @@ let
         fi
         local branch="${branchPrefix}$branchNum"
         git checkout "$branch"
-        git push --atomic origin "local:local" "$branch" "$branch:latest"
+        git push --atomic origin "local:local" "$branch"
+        git push origin "$branch:latest" -f
     }
 
     init() {
