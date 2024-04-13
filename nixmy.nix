@@ -30,8 +30,8 @@ let
     rebuild-flake() { nixos-rebuild "$1" --flake "$2" ''${@:3} ; }
 
     revision() {
-      local rev=`${pkgs.curl}/bin/curl -sL https://nixos.org/channels/nixos-unstable | grep -Po "(?<=/commits/)[^']*"`
-      printf "%s" $rev
+        local rev=`${pkgs.curl}/bin/curl -sL https://nixos.org/channels/nixos-unstable | grep -Po "(?<=/commits/)[^']*"`
+        printf "%s" $rev
     }
 
     update() {
@@ -71,31 +71,43 @@ let
         local diffoutput="$(git --no-pager diff)"
         if [ -z "$diffoutput" ]
         then
-          echo "Fetching origin ..."
-          git fetch origin
-          local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
-          if [ -z "$branchNum" ]
-          then
-            echo "No branches found with pattern: /${branchPrefix}[0-9]+/!" >&2
-            return 1
-          fi
-          local branch="${branchPrefix}$branchNum"
-          git checkout "$branch"
-          local commits=$(git rev-list --left-only --count local...$branch)
-          if [[ "$commits" == "0" ]]
-          then
-            echo "There are no new commits in local branch, no need to update!" >&2
-            return 0
-          fi
-          local newBranch="${branchPrefix}$(( branchNum + 1 ))"
-          git checkout -b "$newBranch"
-          echo "Rebase local -> $newBranch ..."
-          git rebase local
+            echo "Fetching origin ..."
+            git fetch origin
+            local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
+            if [ -z "$branchNum" ]
+            then
+                echo "No branches found with pattern: /${branchPrefix}[0-9]+/!" >&2
+                return 1
+            fi
+            local branch="${branchPrefix}$branchNum"
+            git checkout "$branch"
+            local commits=$(git rev-list --left-only --count local...$branch)
+            if [[ "$commits" == "0" ]]
+            then
+                echo "There are no new commits in local branch, no need to update!" >&2
+                return 0
+            fi
+            local newBranch="${branchPrefix}$(( branchNum + 1 ))"
+            git checkout -b "$newBranch"
+            echo "Rebase local -> $newBranch ..."
+            git rebase local
         else
             git status
             echo "STAGE IS NOT CLEAN! CLEAR IT BEFORE UPDATE!" >&2
             return 1
         fi
+    }
+
+    push() {
+        local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
+        if [ -z "$branchNum" ]
+        then
+            echo "No branches found with pattern: /${branchPrefix}[0-9]+/!" >&2
+            return 1
+        fi
+        local branch="${branchPrefix}$branchNum"
+        git checkout "$branch"
+        git push --atomic origin "local:local" "$branch" "$branch:latest"
     }
 
     init() {
@@ -117,106 +129,106 @@ let
     }
 
     path() {
-      ${cfg.nix}/bin/nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
+        ${cfg.nix}/bin/nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
     }
 
     find() {
-      ${pkgs.findutils}/bin/find /nix/store -iname "$@"
+        ${pkgs.findutils}/bin/find /nix/store -iname "$@"
     }
 
     locate() {
-      ${pkgs.findutils}/bin/locate -i "$@"
+        ${pkgs.findutils}/bin/locate -i "$@"
     }
 
     query() {
-      ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -qaP --description | grep -i $@
+        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -qaP --description | grep -i $@
     }
 
     installed() {
-      ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -q $@
+        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -q $@
     }
 
     install() {
-      ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -iA $@
+        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -iA $@
     }
 
     erase() {
-      if [ -z "$1" ]; then
-        echo "argument is required"
-        exit 1
-      else
-        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -e $@
-      fi
+        if [ -z "$1" ]; then
+            echo "argument is required"
+            exit 1
+        else
+            ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -e $@
+        fi
     }
 
     build() {
-      ${cfg.nix}/bin/nix-build '<nixpkgs>' -A $1
+        ${cfg.nix}/bin/nix-build '<nixpkgs>' -A $1
     }
 
     just-build() {
-      ${cfg.nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
+        ${cfg.nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
     }
 
     command() {
-      fullname="`which $1`"
-      whichExitStatus="$?"
-      if [ "$whichExitStatus" -eq "0" ]; then
-        readlink -f "$fullname"
-      else
-        echo "$1 not found"
-        exit 1
-      fi
+        fullname="`which $1`"
+        whichExitStatus="$?"
+        if [ "$whichExitStatus" -eq "0" ]; then
+            readlink -f "$fullname"
+        else
+            echo "$1 not found"
+            exit 1
+        fi
     }
 
     run() {
-      ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "''${@:2}"
+        ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "''${@:2}"
     }
 
     nix_() {
-      ${cfg.nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
+        ${cfg.nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
     }
 
     backup() {
-      mkdir -p $HOME/.nixmy
-      backupDir="$HOME/.nixmy/backup"
-      if [ -d "$backupDir" ]
-      then
+        mkdir -p $HOME/.nixmy
+        backupDir="$HOME/.nixmy/backup"
+        if [ -d "$backupDir" ]
+        then
+            rm -rf "$backupDir"
+        fi
+        if [ -z "${cfg.backup}" ]
+        then
+            echo "backup is not set" >&2
+            exit 1
+        fi
+        ${pkgs.git}/bin/git clone "${cfg.backup}" "$backupDir"
+        backupNixDir="$HOME/.nixmy/backup/$(cat /etc/hostname)/"
+        mkdir -p $backupNixDir
+        cp -rv "$(dirname ${cfg.nixosConfig})/"* "$backupNixDir"
+        ${pkgs.git}/bin/git -C "$backupDir" add "$backupNixDir"
+        ${pkgs.git}/bin/git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
+        ${pkgs.git}/bin/git -C "$backupDir" push origin master
         rm -rf "$backupDir"
-      fi
-      if [ -z "${cfg.backup}" ]
-      then
-        echo "backup is not set" >&2
-        exit 1
-      fi
-      ${pkgs.git}/bin/git clone "${cfg.backup}" "$backupDir"
-      backupNixDir="$HOME/.nixmy/backup/$(cat /etc/hostname)/"
-      mkdir -p $backupNixDir
-      cp -rv "$(dirname ${cfg.nixosConfig})/"* "$backupNixDir"
-      ${pkgs.git}/bin/git -C "$backupDir" add "$backupNixDir"
-      ${pkgs.git}/bin/git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
-      ${pkgs.git}/bin/git -C "$backupDir" push origin master
-      rm -rf "$backupDir"
     }
 
     flake-update() {
-      flake="$1"
-      list="''${@:2}"
-      if [[ "$list" == "all" ]]
-      then
-        list="$(${cfg.nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
-      fi
-      for item in $list
-      do
-        ${cfg.nix}/bin/nix flake lock --update-input $item "$flake"
-      done
+        flake="$1"
+        list="''${@:2}"
+        if [[ "$list" == "all" ]]
+        then
+            list="$(${cfg.nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
+        fi
+        for item in $list
+        do
+            ${cfg.nix}/bin/nix flake lock --update-input $item "$flake"
+        done
     }
 
     help() {
-      if [ -z "$1" ]; then
-        declare -F | ${pkgs.gawk}/bin/awk '{print "nixmy help "$3}'
-      else
-        declare -f $1
-      fi
+        if [ -z "$1" ]; then
+            declare -F | ${pkgs.gawk}/bin/awk '{print "nixmy help "$3}'
+        else
+            declare -f $1
+        fi
     }
 
     "$@"
