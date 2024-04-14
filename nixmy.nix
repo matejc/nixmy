@@ -165,10 +165,6 @@ let
     }
 
     build() {
-        ${cfg.nix}/bin/nix-build '<nixpkgs>' -A $1
-    }
-
-    just-build() {
         ${cfg.nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
     }
 
@@ -231,7 +227,7 @@ let
     }
 
     clean() {
-        ${cfg.nix}/bin/nix-collect-garbage -d
+        ${cfg.nix}/bin/nix-collect-garbage -d $@
     }
 
     help() {
