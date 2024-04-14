@@ -226,6 +226,14 @@ let
         done
     }
 
+    stray-roots() {
+        ${cfg.nix}/bin/nix-store --gc --print-roots | egrep -v "^(/nix/var|/run/\w+-system|\{memory|/proc)"
+    }
+
+    clean() {
+        ${cfg.nix}/bin/nix-collect-garbage -d
+    }
+
     help() {
         if [ -z "$1" ]; then
             declare -F | ${pkgs.gawk}/bin/awk '{print "nixmy help "$3}'
