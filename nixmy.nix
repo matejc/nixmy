@@ -140,7 +140,11 @@ let
     }
 
     locate() {
-        ${pkgs.findutils}/bin/locate -i "$@"
+        ${pkgs.nix-index}/bin/nix-locate $@
+    }
+
+    tree() {
+        ${pkgs.nix-tree}/bin/nix-tree $@
     }
 
     query() {
