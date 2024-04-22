@@ -71,16 +71,14 @@ let
         local diffoutput="$(git --no-pager diff)"
         if [ -z "$diffoutput" ]
         then
-            echo "Fetching origin ..."
-            git fetch origin
-            local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
-            if [ -z "$branchNum" ]
+            local branchNum="$(pull)"
+            local pullExitCode=$?
+            if [[ pullExitCode -ne 0 ]]
             then
-                echo "No branches found with pattern: /${branchPrefix}[0-9]+/!" >&2
+                echo "Pull failed!" >&2
                 return 1
             fi
             local branch="${branchPrefix}$branchNum"
-            git checkout "$branch"
             local commits=$(git rev-list --left-only --count local...$branch)
             if [[ "$commits" == "0" ]]
             then
@@ -96,6 +94,22 @@ let
             echo "STAGE IS NOT CLEAN! CLEAR IT BEFORE UPDATE!" >&2
             return 1
         fi
+    }
+
+    pull() {
+        cd ${cfg.nixpkgs}
+
+        echo "Fetching origin ..." >&2
+        git fetch origin >&2
+        local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
+        if [ -z "$branchNum" ]
+        then
+            echo "No branches found with pattern: /${branchPrefix}[0-9]+/!" >&2
+            return 1
+        fi
+        local branch="${branchPrefix}$branchNum"
+        git checkout "$branch" >&2
+        echo $branchNum
     }
 
     push() {
