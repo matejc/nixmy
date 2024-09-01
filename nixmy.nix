@@ -198,7 +198,13 @@ let
     }
 
     run() {
-        ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "''${@:2}"
+        if [ -z "''${2-}" ]
+        then
+            ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "$SHELL"
+        else
+            args="''${*:2}"
+            ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "$SHELL -c \"$args\""
+        fi
     }
 
     nix_() {
