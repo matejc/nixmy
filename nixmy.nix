@@ -223,13 +223,13 @@ let
             echo "backup is not set" >&2
             exit 1
         fi
-        ${pkgs.git}/bin/git clone "${cfg.backup}" "$backupDir"
+        git clone "${cfg.backup}" "$backupDir"
         backupNixDir="$HOME/.nixmy/backup/$(cat /etc/hostname)/"
         mkdir -p $backupNixDir
         cp -rv "$(dirname ${cfg.nixosConfig})/"* "$backupNixDir"
-        ${pkgs.git}/bin/git -C "$backupDir" add "$backupNixDir"
-        ${pkgs.git}/bin/git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
-        ${pkgs.git}/bin/git -C "$backupDir" push origin master
+        git -C "$backupDir" add "$backupNixDir"
+        git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
+        git -C "$backupDir" push origin master
         rm -rf "$backupDir"
     }
 
@@ -252,6 +252,10 @@ let
 
     clean() {
         ${cfg.nix}/bin/nix-collect-garbage -d $@
+    }
+
+    check() {
+        ${pkgs.hydra-check}/bin/hydra-check "$*"
     }
 
     help() {
