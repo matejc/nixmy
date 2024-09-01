@@ -255,7 +255,7 @@ let
     }
 
     check() {
-        ${pkgs.hydra-check}/bin/hydra-check "$*"
+        ${pkgs.hydra-check}/bin/hydra-check "$@"
     }
 
     help() {
