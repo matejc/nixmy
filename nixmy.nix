@@ -242,7 +242,7 @@ let
         fi
         for item in $list
         do
-            ${cfg.nix}/bin/nix flake lock --update-input $item "$flake"
+            ${cfg.nix}/bin/nix flake update --flake "$flake" "$item"
         done
     }
 
