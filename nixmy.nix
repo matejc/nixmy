@@ -258,6 +258,10 @@ let
         ${pkgs.hydra-check}/bin/hydra-check "$@"
     }
 
+    search() {
+        ${pkgs.nix-search-cli}/bin/nix-search "$@"
+    }
+
     help() {
         if [ -z "$1" ]; then
             declare -F | ${pkgs.gawk}/bin/awk '{print "nixmy help "$3}'
