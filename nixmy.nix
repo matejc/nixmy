@@ -129,9 +129,8 @@ let
 
     init() {
         {
-            cd $(dirname ${cfg.nixpkgs}) # go one directory back to root of destination (/nixpkgs will be created by git clone)
-            git clone ${cfg.nixpkgs} nixpkgs &&
-            cd nixpkgs &&
+            git clone ${cfg.remote} "${cfg.nixpkgs}" &&
+            cd "${cfg.nixpkgs}" &&
             git remote add upstream https://github.com/NixOS/nixpkgs.git &&
             git pull --rebase upstream master &&
             local rev=`revision` &&
