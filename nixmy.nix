@@ -1,12 +1,17 @@
-{ pkgs, nixmyConfig, branchPrefix ? "mylocal" }:
+{ pkgs ? import <nixpkgs> {}
+, nixpkgsRemote
+, nixpkgsLocalPath
+, nix ? pkgs.nix
+, extraPaths ? []
+, backupRemote
+, nixosConfig ? "/etc/nixos/configuration.nix"
+, branchPrefix ? "mylocal" }:
 let
-  cfg = nixmyConfig;
-
-  NIX_PATH = "nixpkgs=${cfg.nixpkgs}:nixos=${cfg.nixpkgs}/nixos:nixos-config=${cfg.nixosConfig}";
+  NIX_PATH = "nixpkgs=${nixpkgsLocalPath}";
 
   nixmyEnv = pkgs.buildEnv {
     name = "nixmyEnv";
-    paths = [ pkgs.wget pkgs.git pkgs.gawk pkgs.coreutils pkgs.gnugrep cfg.nix ] ++ cfg.extraPaths;
+    paths = [ pkgs.wget pkgs.git pkgs.gawk pkgs.coreutils pkgs.gnugrep nix ] ++ extraPaths;
   };
 
   nixmy = pkgs.writeScriptBin "nixmy" ''
@@ -18,14 +23,14 @@ let
     export PATH="${nixmyEnv}/bin:$PATH"
 
     profile() {
-        ${cfg.nix}/bin/nix-env $2 -f "${cfg.nixpkgs}" -p /nix/var/nix/profiles/per-user/"$USER"/"$1" -i "$1";
+        ${nix}/bin/nix-env $2 -f "${nixpkgsLocalPath}" -p /nix/var/nix/profiles/per-user/"$USER"/"$1" -i "$1";
     }
 
     log() {
-        git -C ${cfg.nixpkgs} log --graph --decorate --pretty=oneline --abbrev-commit --branches --remotes --tags ;
+        git -C ${nixpkgsLocalPath} log --graph --decorate --pretty=oneline --abbrev-commit --branches --remotes --tags ;
     }
 
-    rebuild() { nixos-rebuild -I 'nixpkgs=${cfg.nixpkgs}' "$@" ; }
+    rebuild() { nixos-rebuild -I '${NIX_PATH}' "$@" ; }
 
     rebuild-flake() { nixos-rebuild "$1" --flake "$2" ''${@:3} ; }
 
@@ -35,7 +40,7 @@ let
     }
 
     update() {
-        cd ${cfg.nixpkgs}
+        cd ${nixpkgsLocalPath}
 
         local diffoutput="`git --no-pager diff`"
         if [ -z "$diffoutput" ]; then
@@ -60,7 +65,7 @@ let
     }
 
     upgrade() {
-        cd ${cfg.nixpkgs}
+        cd ${nixpkgsLocalPath}
 
         if ! update
         then
@@ -97,7 +102,7 @@ let
     }
 
     pull() {
-        cd ${cfg.nixpkgs}
+        cd ${nixpkgsLocalPath}
 
         echo "Fetching origin ..." >&2
         git fetch origin >&2
@@ -113,7 +118,7 @@ let
     }
 
     push() {
-        cd ${cfg.nixpkgs}
+        cd ${nixpkgsLocalPath}
 
         local branchNum=$(git branch --all --list --format '%(refname:short)' | awk 'match($0, /^(origin\/)?${branchPrefix}([0-9]+)$/, g) {print g[2]}' | sort -n -r | head -n1)
         if [ -z "$branchNum" ]
@@ -129,8 +134,8 @@ let
 
     init() {
         {
-            git clone ${cfg.remote} "${cfg.nixpkgs}" &&
-            cd "${cfg.nixpkgs}" &&
+            git clone ${nixpkgsRemote} "${nixpkgsLocalPath}" &&
+            cd "${nixpkgsLocalPath}" &&
             git remote add upstream https://github.com/NixOS/nixpkgs.git &&
             git pull --rebase upstream master &&
             local rev=`revision` &&
@@ -145,7 +150,7 @@ let
     }
 
     path() {
-        ${cfg.nix}/bin/nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
+        ${nix}/bin/nix-instantiate --eval -E "let p = import <nixpkgs> {}; in toString p.$1" | sed "s/\"//g"
     }
 
     find() {
@@ -161,15 +166,15 @@ let
     }
 
     query() {
-        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -qaP --description | grep -i $@
+        ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -qaP --description | grep -i $@
     }
 
     installed() {
-        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -q $@
+        ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -q $@
     }
 
     install() {
-        ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -iA $@
+        ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -iA $@
     }
 
     erase() {
@@ -177,12 +182,12 @@ let
             echo "argument is required"
             exit 1
         else
-            ${cfg.nix}/bin/nix-env -f "${cfg.nixpkgs}" -e $@
+            ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -e $@
         fi
     }
 
     build() {
-        ${cfg.nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
+        ${nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
     }
 
     command() {
@@ -199,15 +204,15 @@ let
     run() {
         if [ -z "''${2-}" ]
         then
-            ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "$SHELL"
+            ${nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "$SHELL"
         else
             args="''${*:2}"
-            ${cfg.nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "$SHELL -c \"$args\""
+            ${nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "$SHELL -c \"$args\""
         fi
     }
 
     nix_() {
-        ${cfg.nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
+        ${nix}/bin/nix --extra-experimental-features 'nix-command flakes' $@
     }
 
     backup() {
@@ -217,15 +222,15 @@ let
         then
             rm -rf "$backupDir"
         fi
-        if [ -z "${cfg.backup}" ]
+        if [ -z "${backupRemote}" ]
         then
             echo "backup is not set" >&2
             exit 1
         fi
-        git clone "${cfg.backup}" "$backupDir"
+        git clone "${backupRemote}" "$backupDir"
         backupNixDir="$HOME/.nixmy/backup/$(cat /etc/hostname)/"
         mkdir -p $backupNixDir
-        cp -rv "$(dirname ${cfg.nixosConfig})/"* "$backupNixDir"
+        cp -rv "$(dirname ${nixosConfig})/"* "$backupNixDir"
         git -C "$backupDir" add "$backupNixDir"
         git -C "$backupDir" commit -m "Backup from $(cat /etc/hostname)"
         git -C "$backupDir" push origin master
@@ -237,20 +242,20 @@ let
         list="''${@:2}"
         if [[ "$list" == "all" ]]
         then
-            list="$(${cfg.nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
+            list="$(${nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
         fi
         for item in $list
         do
-            ${cfg.nix}/bin/nix flake update --flake "$flake" "$item"
+            ${nix}/bin/nix flake update --flake "$flake" "$item"
         done
     }
 
     stray-roots() {
-        ${cfg.nix}/bin/nix-store --gc --print-roots | egrep -v "^(/nix/var|/run/\w+-system|\{memory|/proc)"
+        ${nix}/bin/nix-store --gc --print-roots | egrep -v "^(/nix/var|/run/\w+-system|\{memory|/proc)"
     }
 
     clean() {
-        ${cfg.nix}/bin/nix-collect-garbage -d $@
+        ${nix}/bin/nix-collect-garbage -d $@
     }
 
     check() {

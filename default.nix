@@ -1,30 +1,24 @@
 { pkgs, lib, config, ... }:
 with lib;
 let
-  nixmyConfig = config.programs.nixmy;
+  cfg = config.programs.nixmy;
 in {
   options.programs.nixmy = {
     enable = mkEnableOption "Enable nixmy";
 
-    nixpkgs = mkOption {
+    nixpkgsLocalPath = mkOption {
       type = types.str;
       description = "Path to your nixpkgs on filesystem";
     };
 
-    remote = mkOption {
+    nixpkgsRemote = mkOption {
       type = types.str;
       description = "Your git nixpkgs fork";
     };
 
-    backup = mkOption {
+    backupRemote = mkOption {
       type = types.str;
       description = "Your nixos configuration backup git repo";
-    };
-
-    nixosConfig = mkOption {
-      type = types.str;
-      default = "/etc/nixos/configuration.nix";
-      description = "Nixos configuration entry point";
     };
 
     extraPaths = mkOption {
@@ -41,7 +35,6 @@ in {
   };
 
   config = {
-    environment.systemPackages = [ (import ./nixmy.nix { inherit pkgs nixmyConfig; }) ];
+    environment.systemPackages = [ (import ./nixmy.nix { inherit pkgs; inherit (cfg) nixpkgsLocalPath nixpkgsRemote backupRemote extraPaths nix; }) ];
   };
 }
-
