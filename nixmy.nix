@@ -166,15 +166,7 @@ let
     }
 
     query() {
-        ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -qaP --description | grep -i $@
-    }
-
-    installed() {
-        ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -q $@
-    }
-
-    install() {
-        ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -iA $@
+        ${pkgs.nps}/bin/nps $@
     }
 
     erase() {
@@ -255,7 +247,7 @@ let
     }
 
     clean() {
-        ${nix}/bin/nix-collect-garbage -d $@
+        ${pkgs.nh}/bin/nh clean $@
     }
 
     check() {
@@ -263,7 +255,7 @@ let
     }
 
     search() {
-        ${pkgs.nix-search-cli}/bin/nix-search "$@"
+        ${pkgs.nh}/bin/nh search "$@"
     }
 
     help() {
