@@ -169,15 +169,6 @@ let
         ${pkgs.nps}/bin/nps $@
     }
 
-    erase() {
-        if [ -z "$1" ]; then
-            echo "argument is required"
-            exit 1
-        else
-            ${nix}/bin/nix-env -f "${nixpkgsLocalPath}" -e $@
-        fi
-    }
-
     build() {
         ${nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
     }
