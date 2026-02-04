@@ -249,6 +249,14 @@ let
         ${pkgs.nh}/bin/nh search "$@"
     }
 
+    diff-nixos() {
+      ${nix}/bin/nix store diff-closures /run/current-system ".#nixosConfigurations.$1.config.system.build.toplevel"
+    }
+
+    diff-home() {
+      ${nix}/bin/nix store diff-closures $HOME/.nix-profile ".#homeConfigurations.$1.activationPackage"
+    }
+
     help() {
         if [ -z "$1" ]; then
             declare -F | ${pkgs.gawk}/bin/awk '{print "nixmy help "$3}'
