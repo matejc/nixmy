@@ -27,10 +27,8 @@ let
     }
 
     log() {
-        git -C ${nixpkgsLocalPath} log --graph --decorate --pretty=oneline --abbrev-commit --branches --remotes --tags ;
+        git -C ${nixpkgsLocalPath} log --graph --decorate --pretty=oneline --abbrev-commit --branches --remotes --tags;
     }
-
-    rebuild() { nixos-rebuild -I '${NIX_PATH}' "$@" ; }
 
     rebuild-flake() { nixos-rebuild "$1" --flake "$2" ''${@:3} ; }
 
@@ -221,16 +219,15 @@ let
     }
 
     flake-update() {
-        flake="$1"
-        list="''${@:2}"
-        if [[ "$list" == "all" ]]
-        then
-            list="$(${nix}/bin/nix-instantiate --eval --json -E "let a = import $flake/flake.nix; in builtins.attrNames a.inputs" | ${pkgs.jq}/bin/jq -r '.[]')"
-        fi
-        for item in $list
-        do
-            ${nix}/bin/nix flake update --flake "$flake" "$item"
-        done
+        list="$@"
+        case "$list" in
+            all)
+                ${nix}/bin/nix flake update
+                ;;
+            *)
+                ${nix}/bin/nix flake update $list
+                ;;
+        esac
     }
 
     stray-roots() {
@@ -250,11 +247,29 @@ let
     }
 
     diff-nixos() {
-      ${nix}/bin/nix store diff-closures /run/current-system ".#nixosConfigurations.$1.config.system.build.toplevel"
+        ${nix}/bin/nix store diff-closures /run/current-system ".#nixosConfigurations.$1.config.system.build.toplevel"
     }
 
     diff-home() {
-      ${nix}/bin/nix store diff-closures $HOME/.nix-profile ".#homeConfigurations.$1.activationPackage"
+        ${nix}/bin/nix store diff-closures $HOME/.nix-profile ".#homeConfigurations.$1.activationPackage"
+    }
+
+    rebuild() {
+        local what="''${1:?Missing first argument: os/home}"
+        local how="''${2:?Missing second argument: switch/boot/test/...}"
+        local name="''${3:?Missing third argument: nixos/home configuration name}"
+        case "$what" in
+            os|nixos)
+                ${pkgs.nh}/bin/nh os "$how" "$PWD" -H "$name"
+                ;;
+            home)
+                ${pkgs.nh}/bin/nh home "$how" "$PWD" -c "$name"
+                ;;
+            *)
+                echo "Unknown first argument: '$what'" >&2
+                return 1
+                ;;
+        esac
     }
 
     help() {
