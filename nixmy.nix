@@ -246,10 +246,6 @@ let
         ${pkgs.nh}/bin/nh search "$@"
     }
 
-    options() {
-        ${nix}/bin/nh search "$@"
-    }
-
     diff() {
         local what="''${1:?Missing first argument: os/home}"
         local name="''${2:?Missing second argument: nixos/home configuration name}"
