@@ -246,12 +246,25 @@ let
         ${pkgs.nh}/bin/nh search "$@"
     }
 
-    diff-nixos() {
-        ${nix}/bin/nix store diff-closures /run/current-system ".#nixosConfigurations.$1.config.system.build.toplevel"
+    options() {
+        ${nix}/bin/nh search "$@"
     }
 
-    diff-home() {
-        ${nix}/bin/nix store diff-closures $HOME/.nix-profile ".#homeConfigurations.$1.activationPackage"
+    diff() {
+        local what="''${1:?Missing first argument: os/home}"
+        local name="''${2:?Missing second argument: nixos/home configuration name}"
+        case "$what" in
+            os|nixos)
+                ${nix}/bin/nix store diff-closures /run/current-system ".#nixosConfigurations.$1.config.system.build.toplevel"
+                ;;
+            home|hm)
+                ${nix}/bin/nix store diff-closures $HOME/.nix-profile ".#homeConfigurations.$1.activationPackage"
+                ;;
+            *)
+                echo "Unknown first argument: '$what'" >&2
+                return 1
+                ;;
+        esac
     }
 
     rebuild() {
@@ -262,8 +275,32 @@ let
             os|nixos)
                 ${pkgs.nh}/bin/nh os "$how" "$PWD" -H "$name"
                 ;;
-            home)
+            home|hm)
                 ${pkgs.nh}/bin/nh home "$how" "$PWD" -c "$name"
+                ;;
+            *)
+                echo "Unknown first argument: '$what'" >&2
+                return 1
+                ;;
+        esac
+    }
+
+    pr() {
+        ${pkgs.nixpkgs-track}/bin/nixpkgs-track "$@"
+    }
+
+    opts() {
+        local what="''${1:?Missing first argument: os/home/custom}"
+        local name="''${2:?Missing second argument: nixos/home configuration name}"
+        case "$what" in
+            os|nixos)
+                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; flakeAttr = \"nixosConfigurations.$name.options\"; }"
+                ;;
+            home|hm)
+                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; flakeAttr = \"homeConfigurations.$name.options\"; }"
+                ;;
+            custom)
+                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; flakeAttr = \"$name\"; }"
                 ;;
             *)
                 echo "Unknown first argument: '$what'" >&2
