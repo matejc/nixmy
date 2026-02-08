@@ -288,15 +288,22 @@ let
     opts() {
         local what="''${1:?Missing first argument: os/home/custom}"
         local name="''${2:?Missing second argument: nixos/home configuration name}"
+        local query="''${2:?Missing third argument: search query}"
+        exec_jq() {
+            jq -r --arg q "$query" '.[]|select((.name | test($q; "i")) or (.description | test($q; "i")))|"\u001b[38;5;14m\(.name)\u001b[0m \u001b[38;5;102m(\(.type))\u001b[0m\n\(.description|trim)\n\u001b[38;5;102mDefault:\u001b[0m \(.default)\n\u001b[38;5;102mExample:\u001b[0m \(.example|trim)\n\u001b[38;5;102mSource:\u001b[0m\n\(.declarations | map("    \(.)") | join("\n"))\n"'
+        }
         case "$what" in
             os|nixos)
-                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; flakeAttr = \"nixosConfigurations.$name.options\"; }"
+                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; attr = \"nixosConfigurations.$name.options\"; }" | exec_jq
                 ;;
             home|hm)
-                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; flakeAttr = \"homeConfigurations.$name.options\"; }"
+                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; attr = \"homeConfigurations.$name.options\"; }" | exec_jq
+                ;;
+            hm-in-nixos)
+                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; attr = \"nixosConfigurations.$name.options.home-manager.users.type.getSubOptions\"; }" | exec_jq
                 ;;
             custom)
-                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; flakeAttr = \"$name\"; }"
+                ${nix}/bin/nix eval --impure --json --expr "import ${./opts.nix} { flakePath = \"$PWD\"; attr = \"$name\"; }" | exec_jq
                 ;;
             *)
                 echo "Unknown first argument: '$what'" >&2

@@ -1,12 +1,14 @@
-{ pkgs ? import <nixpkgs> {}, flakePath, flakeAttr }:
+{ pkgs ? import <nixpkgs> { config.home-manager.users."<name>".home.stateVersion = "1"; }, flakePath ? builtins.getEnv "PWD", attr ? null }:
 with pkgs.lib;
 let
   flake = builtins.getFlake flakePath;
 
-  opts = if hasSuffix ".getSubOptions" flakeAttr then
-    (attrByPath (splitString "." flakeAttr) {} flake) []
+  hasSubOptions = hasSuffix ".getSubOptions" attr;
+
+  opts = if hasSubOptions then
+    ((attrByPath (splitString "." attr) {} flake) [])
   else
-    attrByPath (splitString "." flakeAttr) {} flake;
+    attrByPath (splitString "." attr) {} flake;
 
   previewNix = parent: name:
     let
@@ -40,13 +42,48 @@ let
       previewNix v "default"
     else "<not available>";
 
+  getExample = v:
+    if v?example && v.example?text then
+      previewNix v.example "text"
+    else if v?example then
+      previewNix v "example"
+    else "<not available>";
+
+  throws = path: attrs:
+    let
+      eval = builtins.tryEval (attrByPath path {} attrs);
+    in
+      !eval.success;
+
   isValidOption = v:
     v ? _type && v._type == "option";
+
+  getOpt = v:
+    {
+      name = concatStringsSep "." (if hasSubOptions then drop 1 v.loc else v.loc);
+      description = if v?description then v.description else "<not available>";
+      type = v.type.description;
+      default = getDefault v;
+      example = getExample v;
+      declarations = if v?declarations then v.declarations else [];
+    };
+
+  filterUnthrowableRecursive =
+    set:
+    let
+      recurse =
+        path:
+        mapAttrs (
+          name: value:
+          if !throws (path ++ [ name ]) set then
+            if isAttrs value then
+              recurse (path ++ [ name ]) value
+            else
+              value
+          else
+            "<error>"
+        );
+    in
+    recurse [ ] set;
 in
-  map (v: {
-    name = concatStringsSep "." v.loc;
-    description = if v?description then v.description else "<not available>";
-    type = v.type.description;
-    default = getDefault v;
-    declarations = v.declarations;
-  }) (collect isValidOption opts)
+  map getOpt ((collect isValidOption) (filterUnthrowableRecursive opts))
