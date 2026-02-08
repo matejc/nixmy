@@ -35,7 +35,7 @@ let
 
   getDefault = v:
     if v?defaultText && v.defaultText?text then
-      "<${v.defaultText.text}>"
+      v.defaultText.text
     else if v?defaultText then
       v.defaultText
     else if v?default then

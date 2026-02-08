@@ -290,7 +290,7 @@ let
         local name="''${2:?Missing second argument: nixos/home configuration name}"
         local query="''${@:3}"
         exec_jq() {
-            jq -r --arg q "$query" '.[]|select((.name | test($q; "i")) or (.description | test($q; "i")))|"\u001b[38;5;14m\(.name)\u001b[0m \u001b[38;5;102m(\(.type))\u001b[0m\n\(.description|trim)\n\u001b[38;5;102mDefault:\u001b[0m \(.default)\n\u001b[38;5;102mExample:\u001b[0m \(.example|trim)\n\u001b[38;5;102mSource:\u001b[0m\n\(.declarations | map("    \(.)") | join("\n"))\n"'
+            jq -r --arg q "$query" '.[]|select((.name | test($q; "i")) or (.description | test($q; "i")))|"\u001b[38;5;14m\(.name)\u001b[0m \u001b[38;5;102m(\(.type))\u001b[0m\n\(.description|tostring|trim)\n\u001b[38;5;102mDefault:\u001b[0m \(.default)\n\u001b[38;5;102mExample:\u001b[0m \(.example|tostring|trim)\n\u001b[38;5;102mSource:\u001b[0m\n\(.declarations | map("    \(.)") | join("\n"))\n"'
         }
         case "$what" in
             os|nixos)
