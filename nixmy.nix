@@ -269,10 +269,10 @@ let
         local name="''${3:?Missing third argument: nixos/home configuration name}"
         case "$what" in
             os|nixos)
-                ${pkgs.nh}/bin/nh os "$how" "$PWD" -H "$name"
+                ${pkgs.nh}/bin/nh os "$how" "$PWD" -H "$name" "''${@:4}"
                 ;;
             home|hm)
-                ${pkgs.nh}/bin/nh home "$how" "$PWD" -c "$name"
+                ${pkgs.nh}/bin/nh home "$how" "$PWD" -c "$name" "''${@:4}"
                 ;;
             *)
                 echo "Unknown first argument: '$what'" >&2
