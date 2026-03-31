@@ -168,7 +168,12 @@ let
     }
 
     build() {
-        ${nix}/bin/nix-build '<nixpkgs>' --no-out-link -A $1
+        if [ -e "$1" ]
+        then
+            ${nix}/bin/nix-build "$1" --no-out-link "''${@:2}"
+        else
+            ${nix}/bin/nix-build '<nixpkgs>' --no-out-link -A "$1"
+        fi
     }
 
     command() {
@@ -183,7 +188,10 @@ let
     }
 
     run() {
-        if [ -z "''${2-}" ]
+        if [ -z "$1" ]
+        then
+            ${nix}/bin/nix-shell --run "$SHELL"
+        elif [ -z "''${2-}" ]
         then
             ${nix}/bin/nix-shell -p $(echo "$1" | tr ',' ' ') --run "$SHELL"
         else
